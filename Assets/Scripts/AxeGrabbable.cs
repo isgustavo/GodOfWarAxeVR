@@ -15,8 +15,7 @@ public class AxeGrabbable : OVRGrabbable
         m_grabbedBy = hand;
         m_grabbedCollider = grabPoint;
 
-        rb.useGravity = false;
-        rb.isKinematic = true;
+        OnAxeGrabbableAction.Invoke();
     }
 
     public override void GrabEnd(Vector3 linearVelocity, Vector3 angularVelocity)

@@ -5,7 +5,6 @@ public class GroundCollision : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        Debug.Log("OnTriggerEnter");
         if (other.tag == "AxeHead")
         {
             IAxeCollision collision = other.GetComponentInParent<IAxeCollision>();
@@ -15,10 +14,16 @@ public class GroundCollision : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (collision.gameObject.tag == "AxeBody")
+        if (collision.collider.tag == "AxeBody")
         {
             IAxeCollision collisionObj = collision.gameObject.GetComponentInParent<IAxeCollision>();
             collisionObj.OnColliderAt();
+        }
+
+        if (collision.collider.tag == "AxeHead")
+        {
+            IAxeCollision collisionObj = collision.gameObject.GetComponentInParent<IAxeCollision>();
+            collisionObj.OnStuckAt();
         }
     }
 

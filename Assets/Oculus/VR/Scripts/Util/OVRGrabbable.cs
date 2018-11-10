@@ -25,6 +25,7 @@ using UnityEngine;
 /// <summary>
 /// An object that can be grabbed and thrown by OVRGrabber.
 /// </summary>
+[RequireComponent(typeof(Rigidbody))]
 public class OVRGrabbable : MonoBehaviour
 {
     [SerializeField]
@@ -41,6 +42,7 @@ public class OVRGrabbable : MonoBehaviour
     protected bool m_grabbedKinematic = false;
     protected Collider m_grabbedCollider = null;
     protected OVRGrabber m_grabbedBy = null;
+    protected Rigidbody rb;
 
 	/// <summary>
 	/// If true, the object can currently be grabbed.
@@ -129,7 +131,7 @@ public class OVRGrabbable : MonoBehaviour
 	/// </summary>
 	virtual public void GrabEnd(Vector3 linearVelocity, Vector3 angularVelocity)
     {
-        Rigidbody rb = gameObject.GetComponent<Rigidbody>();
+        //Rigidbody rb = gameObject.GetComponent<Rigidbody>();
         rb.isKinematic = m_grabbedKinematic;
         rb.velocity = linearVelocity;
         rb.angularVelocity = angularVelocity;
@@ -155,7 +157,8 @@ public class OVRGrabbable : MonoBehaviour
 
     protected virtual void Start()
     {
-        m_grabbedKinematic = GetComponent<Rigidbody>().isKinematic;
+        rb = GetComponent<Rigidbody>();
+        m_grabbedKinematic = rb.isKinematic;
     }
 
     void OnDestroy()

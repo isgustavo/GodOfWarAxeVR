@@ -1713,7 +1713,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   axeMeshTransform: {fileID: 571892405}
   massCenterTransform: {fileID: 648382095}
-  powerfulHandTransform: {fileID: 1130437294}
+  handTransform: {fileID: 1130437294}
 --- !u!1 &397031537
 GameObject:
   m_ObjectHideFlags: 0
@@ -6223,6 +6223,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: def9f194b071416499abc420e96b1410, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  controller: 2
+  trigger: 8
+--- !u!114 &1130437296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1130437293}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c0487eb01c21744381cabeb8c63fa88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   controller: 2

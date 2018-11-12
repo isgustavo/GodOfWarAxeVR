@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Events;
 
 public class PowerfulHandBehaviour : MonoBehaviour
 {
@@ -11,7 +10,6 @@ public class PowerfulHandBehaviour : MonoBehaviour
     private OVRInput.RawAxis1D trigger = OVRInput.RawAxis1D.RHandTrigger;
 
     public Action OnPowerHandEvent = delegate { };
-
 
     private void OnEnable()
     {

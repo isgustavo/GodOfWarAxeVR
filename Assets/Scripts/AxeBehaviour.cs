@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public interface IAxeCollision 
 {
@@ -29,7 +31,7 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
 
     [Header("Powerful Hand")]
     [SerializeField]
-    private Transform powerfulHandTransform;
+    private Transform handTransform;
 
     private AxeState axeState;
     private AxeGrabbable axeGrabbable;
@@ -39,23 +41,28 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
     private bool isFirstGrab = true;
     private Quaternion axeGrabRotation;
 
-    private float rotationSpeedWhenTravelling = -720;
-    private float rotationSpeedWhenReturning = 360;
+    private readonly float rotationSpeedWhenTravelling = -720;
+    private readonly float rotationSpeedWhenReturning = 360;
 
     private bool isAvailableToReturn = false;
     private float remainingTimeToReturn;
-    private float timeToReturning = 1f;
+    private readonly float timeToReturning = 1f;
 
     private bool isThrowToClose = false;
-    private float throwThreshold = 12f;
+    private readonly float throwThreshold = 12f;
     private float returningStartTime;
     private float returningJourneyLength;
-    private float returningArcZ = 10f;
+    private readonly float returningArcZ = 10f;
     private Vector3 returningStartPosition;
     private Vector3 returningMiddlePosition;
 
-    private Vector3 normalGravity = new Vector3(0f, -9.81f, 0f);
-    private Vector3 travellingGravity = new Vector3(0f, -2.81f, 0f);
+    private readonly Vector3 normalGravity = new Vector3(0f, -9.81f, 0f);
+    private readonly Vector3 travellingGravity = new Vector3(0f, -2.81f, 0f);
+
+    private List<Collider> colliderTrigabbles = new List<Collider>();
+
+    private UnityEvent OnGrabbableEvent = new UnityEvent();
+    private UnityEvent OnReturningEvent = new UnityEvent();
 
     private void Awake()
     {
@@ -70,9 +77,17 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
             throw new Exception("Should have an Axe Mesh Transform");
         }
 
-        if (powerfulHandTransform == null)
+        if (handTransform == null)
         {
             throw new Exception("Should have an Powerfull Hand");
+        }
+
+        foreach (Collider collider in GetComponentsInChildren<Collider>())
+        {
+            if (collider.gameObject.layer == 10)
+            {
+                colliderTrigabbles.Add(collider);
+            }
         }
     }
 
@@ -82,8 +97,12 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
         axeGrabbable.OnAxeDroppedAction += DropAxe;
         axeGrabbable.OnAxeTrownAction += ThrownAxe;
 
-        PowerfulHandBehaviour powerBehaviour = powerfulHandTransform.GetComponent<PowerfulHandBehaviour>();
+        PowerfulHandBehaviour powerBehaviour = handTransform.GetComponent<PowerfulHandBehaviour>();
         powerBehaviour.OnPowerHandEvent += OnAxeCalledEvent;
+
+        HandVibrateBehaviour handBehaviour = handTransform.GetComponent<HandVibrateBehaviour>();
+        OnGrabbableEvent.AddListener(handBehaviour.Vibrate);
+        OnReturningEvent.AddListener(handBehaviour.VibrateNonStop);
     }
 
     private void Update()
@@ -108,12 +127,14 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
         axeGrabbable.OnAxeDroppedAction -= DropAxe;
         axeGrabbable.OnAxeTrownAction -= ThrownAxe;
 
-        if (powerfulHandTransform != null)
+        if (handTransform != null)
         {
-            PowerfulHandBehaviour powerBehaviour = powerfulHandTransform.GetComponent<PowerfulHandBehaviour>();
+            PowerfulHandBehaviour powerBehaviour = handTransform.GetComponent<PowerfulHandBehaviour>();
             powerBehaviour.OnPowerHandEvent -= OnAxeCalledEvent;
         }
 
+        OnGrabbableEvent.RemoveAllListeners();
+        OnReturningEvent.RemoveAllListeners();
     }
 
     public void OnAxeCalledEvent()
@@ -159,6 +180,8 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
         axeMeshTransform.rotation = new Quaternion(0, 0, 0, 0);
 
         axeState = AxeState.Grabbled;
+        RemoverTriggerColliders();
+        OnGrabbableEvent.Invoke();
     }
 
     private void DropAxe()
@@ -207,7 +230,7 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
         returningStartTime = Time.time;
         returningStartPosition = transform.position;
 
-        returningJourneyLength = Vector3.Distance(returningStartPosition, powerfulHandTransform.position);
+        returningJourneyLength = Vector3.Distance(returningStartPosition, handTransform.position);
 
         if (returningJourneyLength < throwThreshold)
         {
@@ -218,15 +241,17 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
             isThrowToClose = false;
             if (transform.forward.z < 0)
             {
-                returningMiddlePosition = returningStartPosition + (powerfulHandTransform.position - returningStartPosition) / 2 + (-Vector3.forward * returningArcZ);
+                returningMiddlePosition = returningStartPosition + (handTransform.position - returningStartPosition) / 2 + (-Vector3.forward * returningArcZ);
             }
             else
             {
-                returningMiddlePosition = returningStartPosition + (powerfulHandTransform.position - returningStartPosition) / 2 + (Vector3.forward * returningArcZ);
+                returningMiddlePosition = returningStartPosition + (handTransform.position - returningStartPosition) / 2 + (Vector3.forward * returningArcZ);
             }
         }
 
         axeState = AxeState.Returning;
+        TriggerColliders();
+        OnReturningEvent.Invoke();
     }
 
     private void OnAxeReturning()
@@ -236,16 +261,32 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
 
         if (isThrowToClose)
         {
-            transform.position = Vector3.Lerp(returningStartPosition, powerfulHandTransform.position, fracJourney * 2);
+            transform.position = Vector3.Lerp(returningStartPosition, handTransform.position, fracJourney * 2);
         }
         else
         {
             Vector3 point1 = Vector3.Lerp(returningStartPosition, returningMiddlePosition, fracJourney);
-            Vector3 point2 = Vector3.Lerp(returningMiddlePosition, powerfulHandTransform.position, fracJourney);
+            Vector3 point2 = Vector3.Lerp(returningMiddlePosition, handTransform.position, fracJourney);
 
             transform.position = Vector3.Lerp(point1, point2, fracJourney);
         }
 
         axeMeshTransform.Rotate(0, 0, rotationSpeedWhenReturning * Time.deltaTime, Space.Self);
+    }
+
+    private void TriggerColliders()
+    {
+        foreach (Collider collider in colliderTrigabbles)
+        {
+            collider.isTrigger = true;
+        }
+    }
+
+    private void RemoverTriggerColliders()
+    {
+        foreach (Collider collider in colliderTrigabbles)
+        {
+            collider.isTrigger = false;
+        }
     }
 }

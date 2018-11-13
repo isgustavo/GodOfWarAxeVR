@@ -9,6 +9,8 @@ public interface IAxeCollision
     void OnColliderAt();
 }
 
+public class AudioEvent : UnityEvent<AudioClip> { }
+
 [RequireComponent (typeof(AxeGrabbable))]
 public class AxeBehaviour : MonoBehaviour, IAxeCollision
 {
@@ -29,12 +31,25 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
     [SerializeField]
     private Transform massCenterTransform;
 
+    [Header("Axe audio clips")]
+    [SerializeField]
+    private AudioClip axeAudioClip;
+    [SerializeField]
+    private AudioClip grabAudioClip;
+    [SerializeField]
+    private AudioClip returningAudioClip;
+    [SerializeField]
+    private AudioClip collisionAudioClip;
+    [SerializeField]
+    private AudioClip wrongCollisionAudioClip;
+
     [Header("Powerful Hand")]
     [SerializeField]
     private Transform handTransform;
 
     private AxeState axeState;
     private AxeGrabbable axeGrabbable;
+    private AxeAudioBehaviour audioBehaviour;
 
     private Rigidbody rb;
 
@@ -61,6 +76,9 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
 
     private List<Collider> colliderTrigabbles = new List<Collider>();
 
+    private AudioEvent OnPlayOneShotEvent = new AudioEvent();
+    private AudioEvent OnPlayLoopEvent = new AudioEvent();
+
     private UnityEvent OnGrabbableEvent = new UnityEvent();
     private UnityEvent OnReturningEvent = new UnityEvent();
 
@@ -68,6 +86,7 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
     {
         axeState = AxeState.None;
         axeGrabbable = GetComponent<AxeGrabbable>();
+        audioBehaviour = GetComponent<AxeAudioBehaviour>();
 
         rb = GetComponent<Rigidbody>();
         rb.centerOfMass = massCenterTransform.position;
@@ -103,6 +122,9 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
         HandVibrateBehaviour handBehaviour = handTransform.GetComponent<HandVibrateBehaviour>();
         OnGrabbableEvent.AddListener(handBehaviour.Vibrate);
         OnReturningEvent.AddListener(handBehaviour.VibrateNonStop);
+
+        OnPlayOneShotEvent.AddListener(audioBehaviour.PlayOneShot);
+        OnPlayLoopEvent.AddListener(audioBehaviour.PlayLoop);
     }
 
     private void Update()
@@ -135,6 +157,9 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
 
         OnGrabbableEvent.RemoveAllListeners();
         OnReturningEvent.RemoveAllListeners();
+
+        OnPlayOneShotEvent.RemoveAllListeners();
+        OnPlayLoopEvent.RemoveAllListeners();
     }
 
     public void OnAxeCalledEvent()
@@ -155,6 +180,8 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
             rb.useGravity = false;
             rb.isKinematic = true;
             isAvailableToReturn = true;
+
+            OnPlayOneShotEvent.Invoke(collisionAudioClip);
             axeState = AxeState.Stucked;
         }
     }
@@ -163,8 +190,9 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
     {
         if (axeState != AxeState.Dropped)
         {
+            OnPlayOneShotEvent.Invoke(wrongCollisionAudioClip);
             DropAxe();
-        }  
+        }
     }
 
     private void GrabbableAxe()
@@ -179,9 +207,10 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
 
         axeMeshTransform.rotation = new Quaternion(0, 0, 0, 0);
 
-        axeState = AxeState.Grabbled;
         RemoverTriggerColliders();
         OnGrabbableEvent.Invoke();
+        OnPlayOneShotEvent.Invoke(grabAudioClip);
+        axeState = AxeState.Grabbled;
     }
 
     private void DropAxe()
@@ -205,6 +234,7 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
         rb.useGravity = true;
         rb.isKinematic = false;
 
+        OnPlayLoopEvent.Invoke(axeAudioClip);
         axeState = AxeState.Travelling;
     }
 
@@ -249,9 +279,10 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
             }
         }
 
-        axeState = AxeState.Returning;
         TriggerColliders();
+        OnPlayOneShotEvent.Invoke(returningAudioClip);
         OnReturningEvent.Invoke();
+        axeState = AxeState.Returning;
     }
 
     private void OnAxeReturning()

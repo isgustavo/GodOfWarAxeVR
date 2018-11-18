@@ -105,7 +105,10 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
         {
             if (collider.gameObject.layer == 10)
             {
-                colliderTrigabbles.Add(collider);
+                //if (collider.tag == "AxeBody")
+                //{
+                    colliderTrigabbles.Add(collider);
+                //}  
             }
         }
     }
@@ -190,9 +193,10 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
     {
         if (axeState != AxeState.Dropped)
         {
-            OnPlayOneShotEvent.Invoke(wrongCollisionAudioClip);
             DropAxe();
         }
+
+        OnPlayOneShotEvent.Invoke(wrongCollisionAudioClip);
     }
 
     private void GrabbableAxe()
@@ -217,10 +221,11 @@ public class AxeBehaviour : MonoBehaviour, IAxeCollision
     {
         remainingTimeToReturn = timeToReturning;
         Physics.gravity = normalGravity;
+        rb.velocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
         rb.constraints = RigidbodyConstraints.None;
         rb.useGravity = true;
         rb.isKinematic = false;
-
         axeState = AxeState.Dropped;
     }
 
